@@ -1,2 +1,6 @@
-# Old-school-Lisp-
-Creating code in Lisp (Scheme) as in the 'old days'?
+# Old School LISP
+
+Creating code in LISP (Scheme) like in the 'old days'?
+
+First project is working on a chess-engine.
+
