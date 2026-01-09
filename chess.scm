@@ -19,14 +19,18 @@
 ;;  version 0.01m   2026-01-07    Adding a test whether after a player's move the player's King is not checked.
 ;;                                Refactor a lot on the 'all-moves' and 'all-moves-list' functions
 ;;  version 0.01n   2026-01-08    Some minor changes and removing obsolete code
+;;  version 0.01o   2026-01-09    Work on the opening library
 ;;
 ;;
-;; W.T.D.: Think about valuating a board position - then write the function...
+;; W.T.D.: For the opening library format the board to a 64 character (UTF-8) ascii string
+;;         This can be compared with the openings library which may have the prefered move
+;;         --
+;;         Think about valuating a board position - then write the function...
 ;;         Add creating a list of moves in official chess notation
 ;;         Then... start the enigine with 'mate in 2' samples
 ;;
 ;;
-;;  (cl) 2025-12-31, 2026-01-08 by Arno Jacobs
+;;  (cl) 2025-12-31, 2026-01-09 by Arno Jacobs
 ;; ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ---
 ;; Info on chess
 ;;
@@ -40,23 +44,10 @@
 ;;
 #lang scheme
 
-(define white 1)
-(define black -1)
+(require "chess-pieces.scm")
+(require "boards.scm")
+(require "opening-library.scm")
 
-(define King 6)
-(define Queen 5)
-(define Bishop 4)
-(define Knight 3)
-(define Rook 2)
-(define Pawn 1)
-(define empty 0) ;; Empty field
-(define outside -9) ;; Outside of the board
-
-;; Piece states
-(define First-Move 10)
-(define En-Passant 20)
-(define Castling 30)
-;; 'promotion' is not a state
 
 (define CheckMate 42)
 (define Quit      99)
@@ -93,19 +84,9 @@
 
 (define (opponents-colour players-colour) (- players-colour))
 
-
-;; A helper function for creating a piece
-;; Either 2 or 3 parameters
-(define (piece . characteristics)
-  (if (= 2 (length characteristics))
-      (* (first characteristics) (second characteristics))
-      (if (= 3 (length characteristics))
-          (* (first characteristics) (+ (second characteristics) (third characteristics)))
-          empty)))
-
 ;; All pretty functions convert board & piece data to strings
 (define (pretty-colour piece-value)
-  (if (= 0 piece-value)
+  (if (= empty piece-value)
       " "
       (if (= (colour piece-value) white)
           "w"
@@ -242,27 +223,6 @@
 (define (list-moves moves)
   (display (apply string-append (map pretty-list-moves moves))))
 
-;; ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ---
-;; An initial chess board
-;;
-(define initial-board
-  (list
-   (list (piece white Rook Castling) (piece white Knight) (piece white Bishop) (piece white Queen)
-         (piece white King Castling) (piece white Bishop) (piece white Knight) (piece white Rook Castling))
-   (list (piece white Pawn First-Move) (piece white Pawn First-Move)
-         (piece white Pawn First-Move) (piece white Pawn First-Move)
-         (piece white Pawn First-Move) (piece white Pawn First-Move)
-         (piece white Pawn First-Move) (piece white Pawn First-Move))
-   (list empty empty empty empty empty empty empty empty)
-   (list empty empty empty empty empty empty empty empty)
-   (list empty empty empty empty empty empty empty empty)
-   (list empty empty empty empty empty empty empty empty)
-   (list (piece black Pawn First-Move) (piece black Pawn First-Move)
-         (piece black Pawn First-Move) (piece black Pawn First-Move)
-         (piece black Pawn First-Move) (piece black Pawn First-Move)
-         (piece black Pawn First-Move) (piece black Pawn First-Move))
-   (list (piece black Rook Castling) (piece black Knight) (piece black Bishop) (piece black Queen)
-         (piece black King Castling) (piece black Bishop) (piece black Knight) (piece black Rook Castling))))
 
 ;; Reset the Castling for a given colour
 ;;
@@ -750,19 +710,26 @@
 ;;  m     show all possible moves for the colour of the player whose turn it is.
 ;;  M     show all possible moves for the opponent's colour.
 ;;  Q     quit the game.
-;;  
+;;
+
+(define (move-string-to-list move)
+  (list (list (- (char->integer (first  move)) 96)
+              (- (char->integer (second move)) 48))
+        (list (- (char->integer (third  move)) 96)
+              (- (char->integer (fourth move)) 48))))
+  
 (define (parse-move board players-colour entered-move)
   (let ((move (string->list entered-move)))
     (if (null? move)
         NoMoves
         (let ((cmd (first move)))
           (if (= 4 (length move))
-              (list (list (- (char->integer (first  move)) 96)
-                          (- (char->integer (second move)) 48))
-                    (list (- (char->integer (third  move)) 96)
-                          (- (char->integer (fourth move)) 48)))
+              (move-string-to-list move)
               (cond ((equal? cmd #\Q) QuitGame)
                     ((equal? cmd #\b) (display-board board))
+                    ((equal? cmd #\c) (LISP-generated-move board players-colour))
+                    ((equal? cmd #\o) (display-opening-library-style board))
+                    ((equal? cmd #\O) (display opening-library))
                     ((equal? cmd #\m) (list-moves (all-moves board players-colour)))
                     ((equal? cmd #\M) (list-moves (all-moves board (negate players-colour))))
                     (else              NoMoves)))))))
@@ -782,7 +749,63 @@
         move
         NoMoves)))
 
- 
+;; ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ---
+;; Openings library incl. helpers
+;;
+
+(define (get-piece-character piece-type)
+  (cond ((= piece-type King)   #\K)
+        ((= piece-type Queen)  #\Q)
+        ((= piece-type Bishop) #\B)
+        ((= piece-type Knight) #\N)
+        ((= piece-type Rook)   #\R)
+        ((= piece-type Pawn)   #\P)
+        (else                  #\.)))
+
+(define (convert-piece-for-openings-library piece-value)
+  (let ((ptc (get-piece-character (abs (get-piece-type piece-value)))))
+    (string
+     (if (= (colour piece-value) white)
+         (integer->char (+ 32 (char->integer ptc)))
+         ptc))))
+         
+(define (opening-library-style-row board-row)
+  (apply string-append
+         (map convert-piece-for-openings-library board-row)))
+
+(define (opening-library-style board)
+  (apply string-append 
+         (reverse (map opening-library-style-row board))))
+
+(define (display-opening-library-style board)
+  (display "\n")
+  (display (opening-library-style board))
+  (display "\n"))
+
+
+;; ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ---
+;; Here the code for a computer / LISP generated legal move
+;; Code will first check the 'opening library' - and be aware - there is NO check for legal moves on that library
+
+
+;; This code is useless, but it will generate legal moves
+;;
+(define (random-move board players-colour)
+  (let ((legal-moves (all-moves-list board players-colour)))
+    (nth legal-moves (random (length legal-moves)))))
+
+;; Look up board position in opening library
+(define (filter-open-moves ols-board library)
+  (map second (filter (lambda (oll) (string=? ols-board (first oll))) library)))
+
+(define (LISP-generated-move board players-colour)
+  (let ((open-move (filter-open-moves (opening-library-style board) opening-library)))
+    (if (null? open-move)
+        (random-move board players-colour)
+        (move-string-to-list (string->list (first open-move))))))
+        
+
+
 ;; ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ---
 ;; Minimal game loop
 ;;
@@ -835,10 +858,16 @@
 
 ;;
 (define (c1) (game initial-board white))
+(define b initial-board)
 
- 
+
+
+;;
 ;;
 (c1)
+
+
+
 
 ;;
 ;; End of code.
