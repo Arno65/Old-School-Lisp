@@ -1,27 +1,26 @@
 ;; ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ---
 ;;  Creating a Chess engine in Lisp (using Scheme in Racket)
 ;;
-;;  version 0.01a   2025-12-28    A very first draft
-;;                                Initialising things that could be of good use
-;;  version 0.01b   2025-12-29    Piece and board data and pretty printing
-;;  version 0.01c   2025-12-29    Start to create lists for all possible moves for any given board setup
-;;  version 0.01d   2025-12-30    More work on creating lists for all possible moves for any given board setup
-;;  version 0.01e   2025-12-30    All moves for individual pieces. (except en-passant)
-;;  version 0.01f   2025-12-30    All moves for individual pieces. Added 'list-moves' function
-;;  version 0.01g   2025-12-31    Refactoring the 'all-moves' function, small changes and starting the game loop
-;;  version 0.01h   2026-01-03    Working on the 'make the move' functions - bugs in the moves generator :-(
-;;  version 0.01i   2026-01-03    'make the move' functions look all 0K. - check on board dimensions
-;;  version 0.01j   2026-01-04    Added 'Check' test
-;;  version 0.01k   2026-01-04    Added 'Checkmate' test - rewrote (list-moves) for readable output
-;;  version 0.01l   2026-01-06    Issues with game-loop . . .
-;;                                The 'all-moves' function is not complete correct.
-;;                                The King can move to 'check' position - check for free positions
+;;  version 0.01a   2025-12-28    A very first draft. Initialising things that could be of good use.
+;;  version 0.01b   2025-12-29    Added piece and board data and pretty printing.
+;;  version 0.01c   2025-12-29    Start to create lists for all possible moves for any given board setup.
+;;  version 0.01d   2025-12-30    More work on creating lists for all possible moves for any given board setup.
+;;  version 0.01e   2025-12-30    All moves for individual pieces, except en-passant.
+;;  version 0.01f   2025-12-30    All moves for individual pieces. Added the 'list-moves' function.
+;;  version 0.01g   2025-12-31    Refactoring the 'all-moves' function, small changes and starting the game loop.
+;;  version 0.01h   2026-01-03    Working on the 'make the move' functions. Srious bugs in the moves generator :-(
+;;  version 0.01i   2026-01-03    'make the move' functions all look 0K. Added a check on board dimensions.
+;;  version 0.01j   2026-01-04    Added 'Check' test.
+;;  version 0.01k   2026-01-04    Added 'Checkmate' test, rewrote 'list-moves' for readable output.
+;;  version 0.01l   2026-01-06    Issues with the game-loop. The 'all-moves' function is not complete correct.
+;;                                The King can move to 'check' position, so check for free positions.
 ;;  version 0.01m   2026-01-07    Adding a test whether after a player's move the player's King is not checked.
-;;                                Refactor a lot on the 'all-moves' and 'all-moves-list' functions
-;;  version 0.01n   2026-01-08    Some minor changes and removing obsolete code
-;;  version 0.01o   2026-01-09    Work on the opening library
+;;                                Refactored a lot on the 'all-moves' and 'all-moves-list' functions.
+;;  version 0.01n   2026-01-08    Some minor changes and removing obsolete code.
+;;  version 0.01o   2026-01-09    Added the opening library. Started with two moves only.
 ;;  version 0.01p   2026-01-10    Debuged Castling. My Casting on Rook was TOO strict.
-;;                                A first (not standard) list of moves is created, and at least shown at the end
+;;                                A first (not standard) list of moves is created, and at least shown at the end.
+;;  version 0.01q   2026-01-10    Added promotion, Queen (major) or Knight (minor). Added some helper information.
 ;;
 ;;
 ;; W.T.D.: Think about valuating a board position - then write the function...
@@ -47,12 +46,39 @@
 (require "boards.scm")
 (require "opening-library.scm")
 
+(define code-info
+  (string-append
+   "\n\n* * *   a tiny and simple Lisp/Scheme chess engine   * * *\n\n"
+   "version 0.01q  "
+   "(cl) 2025-12-31, 2026-01-10  by Arno Jacobs\n\n"))
+
 
 (define CheckMate 42)
 (define Quit      99)
 (define QuitGame (list (list Quit Quit) (list Quit Quit))) ;; format as a move
-                       
+
 (define NoMoves '())
+
+;; Helper for a promotion piece
+(define *promotion-piece* Queen)
+
+(define (minor-promotion)
+  (set! *promotion-piece* Knight))
+
+(define (major-promotion)
+  (set! *promotion-piece* Queen))
+
+(define (pretty-promotion-piece)
+  (string-append "\nPromotion piece is set to " (pretty-type-plus *promotion-piece*) "\n" ))
+
+(define (set-minor-promotion)
+  (minor-promotion)
+  (display (pretty-promotion-piece)))
+
+(define (set-major-promotion)
+  (major-promotion)
+  (display (pretty-promotion-piece)))
+
 
 (define A 1) ;; Some board helpers
 (define B 2)
@@ -223,21 +249,8 @@
   (display (apply string-append (map pretty-list-moves moves))))
 
 
-;; Reset the Castling for a given colour
-;;
-(define (column-erase-can-castling-states piece-value piece-colour)
-  (if (and (= (colour piece-value) piece-colour)
-           (can-do-Castling piece-value))
-      (get-piece-type piece-value)
-      piece-value))
-      
-(define (row-erase-can-castling-states row-pieces piece-colour)
-  (map (lambda (piece) (column-erase-can-castling-states piece piece-colour)) row-pieces))
-
-(define (erase-can-castling-states board piece-colour)
-  (map (lambda (pieces) (row-erase-can-castling-states pieces piece-colour)) board))
-
-(define (erase-can-castling-state-rook board x y)
+;; Reset the Castling state for a piece with a given colour
+(define (erase-can-castling-state board x y)
   (fill-location board (get-piece-type (location-value board x y)) x y))
       
 ;; En-passant is only valid for one move
@@ -600,17 +613,28 @@
         (next-board (empty-location board from-x from-y)))
     (fill-location next-board (set-En-Passant piece-type) to-x to-y)))
 
-;; WORK the En-Passant move!
+;; Work the En-Passant move!
 (define (work-pawn-en-passant-take board from-x from-y to-x to-y)
   (let ((next-board (work-next-standard-move board from-x from-y to-x to-y)))
     (empty-location next-board to-x from-y)))
 
+
+;; Work the Promotion of the pawn
+;; Ask for a major or minor promotion
+(define (work-promotion-move board from-x from-y to-x to-y)
+  (let ((piece-colour (colour (location-value board from-x from-y)))
+        (next-board (empty-location board from-x from-y)))
+    (fill-location next-board (* piece-colour *promotion-piece*) to-x to-y)))
+
 (define (work-next-pawn-move board from-x from-y to-x to-y)
-  (if (= (abs (- from-x to-x)) 1)
-      (work-pawn-en-passant-take board from-x from-y to-x to-y)
-      (if (= (abs (- from-y to-y)) 1)
-          (work-next-standard-move board from-x from-y to-x to-y)
-          (work-two-step-pawn-move board from-x from-y to-x to-y))))
+  ;; Test for promotion
+  (if (or (= 1 to-y) (= 8 to-y))
+      (work-promotion-move board from-x from-y to-x to-y)
+      (if (= (abs (- from-x to-x)) 1)
+          (work-pawn-en-passant-take board from-x from-y to-x to-y)
+          (if (= (abs (- from-y to-y)) 1)
+              (work-next-standard-move board from-x from-y to-x to-y)
+              (work-two-step-pawn-move board from-x from-y to-x to-y)))))
 
 (define (work-castling-move board from-x from-y to-x to-y)
   (define board-1 (work-next-standard-move board from-x from-y to-x to-y))
@@ -653,12 +677,10 @@
         (define next-board-1 (erase-en-passant-states board))
         (define next-board-2
           (if (= piece-state Castling)
-              (if (= piece-type King) 
-                  (erase-can-castling-states next-board-1 piece-colour)
-                  (if (= piece-type Rook)
-                      (erase-can-castling-state-rook next-board-1 from-x from-y)
-                      next-board-1))
-              next-board-1))
+              (if (or (= piece-type King) (= piece-type Rook))
+                  (erase-can-castling-state next-board-1 from-x from-y)
+                  next-board-1)
+          next-board-1))
         (work-next-move next-board-2 piece-type piece-colour from-x from-y to-x to-y))))
 
 ;; ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ---
@@ -711,12 +733,38 @@
 ;; First the simple parse only for format 'e2e4'
 ;; (for now 'e2e4' is the working format)
 ;;
-;; Helper commands:
-;;  b     show current board incl. the colour of the player whose turn it is.
-;;  m     show all possible moves for the colour of the player whose turn it is.
-;;  M     show all possible moves for the opponent's colour.
-;;  Q     quit the game.
+;; Commands:
+;;  b     show the current board
+;;  c     play a Lisp-code-generated move
+;;  g     show all the previous moves
+;;  h     show this helper information
+;;  m     show all possible moves for the current player
+;;  M     show all possible moves for the opponent
+;;  o     show the current board in a openinglibrary format
+;;  O     show the complete opening library in a opening library format
+;;  p     set promotion piece to minor promotion (Knight) before the actual move
+;;  P     set promotion piece to major promotion (Queen) before the actual move
+;;  s     show the current promotion piece
+;;  Q     quit the game
 ;;
+
+(define (display-helper-information)
+  (display code-info)
+  (display "helper information\n\n")
+  (display "  the input format for a move (like): e2e4\n\n")
+  (display "  commands:\n")
+  (display "    b     show the current board\n")
+  (display "    c     play a Lisp-code-generated move\n")
+  (display "    g     show all the previous moves\n")
+  (display "    h     show this helper information\n")
+  (display "    m     show all possible moves for the current player\n")
+  (display "    M     show all possible moves for the opponent\n")
+  (display "    o     show the current board in a opening library format\n")
+  (display "    O     show the complete opening library in a opening library format\n")
+  (display "    p     set promotion piece to minor promotion (Knight) before the actual move\n")
+  (display "    P     set promotion piece to major promotion (Queen) before the actual move\n")
+  (display "    s     show the current promotion piece\n")
+  (display "    Q     quit the game.\n\n"))
 
 (define (move-string-to-list move)
   (list (list (- (char->integer (first  move)) 96)
@@ -731,14 +779,18 @@
         (let ((cmd (first move)))
           (if (= 4 (length move))
               (move-string-to-list move)
-              (cond ((equal? cmd #\Q) QuitGame)
-                    ((equal? cmd #\b) (display-board board))
-                    ((equal? cmd #\c) (LISP-generated-move board players-colour))
+              (cond ((equal? cmd #\b) (display-board board))
+                    ((equal? cmd #\c) (Lisp-code-generated-move board players-colour))
                     ((equal? cmd #\g) (display-game game))
-                    ((equal? cmd #\o) (display-opening-library-style board))
-                    ((equal? cmd #\O) (display opening-library))
+                    ((equal? cmd #\h) (display-helper-information))
                     ((equal? cmd #\m) (list-moves (all-moves board players-colour)))
                     ((equal? cmd #\M) (list-moves (all-moves board (negate players-colour))))
+                    ((equal? cmd #\o) (display-opening-library-style board))
+                    ((equal? cmd #\O) (display opening-library))
+                    ((equal? cmd #\p) (set-minor-promotion))
+                    ((equal? cmd #\P) (set-major-promotion))
+                    ((equal? cmd #\s) (display (pretty-promotion-piece)))
+                    ((equal? cmd #\Q) QuitGame)                    
                     (else              NoMoves)))))))
 
 ;; Read, parse and check for legality of the move
@@ -791,7 +843,7 @@
 
 
 ;; ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ---
-;; Here the code for a computer / LISP generated legal move
+;; Here the code for a computer / Lisp-code generated legal move
 ;; Code will first check the 'opening library' - and be aware - there is NO check for legal moves on that library
 
 
@@ -802,11 +854,11 @@
     (nth legal-moves (random (length legal-moves)))))
 
 ;; Look up board position in opening library
-(define (filter-open-moves ols-board library)
+(define (filter-opening-library-moves ols-board library)
   (map second (filter (lambda (oll) (string=? ols-board (first oll))) library)))
 
-(define (LISP-generated-move board players-colour)
-  (let ((open-move (filter-open-moves (opening-library-style board) opening-library)))
+(define (Lisp-code-generated-move board players-colour)
+  (let ((open-move (filter-opening-library-moves (opening-library-style board) opening-library)))
     (if (null? open-move)
         (random-move board players-colour)
         (move-string-to-list (string->list (first open-move))))))
@@ -873,14 +925,16 @@
 ;; Start the game-loop en show end status
 ;; Incl. Quit or Checkmate test
 (define (game board player-colour)
+  (display code-info)
+  (display "\nHave a good game!\n\n")
   (let ((game (game-loop board player-colour NoMoves)))
     (display-game (rest game))
     (if (= (abs (first game)) CheckMate)
         (display (string-append
                   "\n* * *  Checkmate! * * *   by "
                   (pretty-colour-plus (colour (first game)))
-                  "\nBye bye.\n\n"))
-        (display "\nYou quit, bye bye.\n\n"))))
+                  "\n\nThanks for the game. Bye bye.\n\n"))
+        (display "\nYou quit, thanks for the game. Bye bye.\n\n"))))
 
 
 
@@ -891,15 +945,12 @@
 ;;
 
 ;;
-(define (c1) (game initial-board white))
-(define (c2) (game test-board   white))
-(define b initial-board)
+(define (t1) (game initial-board white))
+(define (t2) (game test-board    white))
 
 ;;
-(c1)
-;; (c2)
-
-
+(t1)
+;;(t2)
 
 
 ;;

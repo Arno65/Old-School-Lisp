@@ -58,4 +58,5 @@
    (list (piece black Rook Castling) (piece black Knight) (piece black Bishop) (piece black Queen)
          (piece black King Castling) (piece black Bishop) (piece black Knight) (piece black Rook Castling))))
 
+
 ;; End of this code
