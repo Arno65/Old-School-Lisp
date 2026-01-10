@@ -9,9 +9,9 @@ This is a learning project.\
 Learn old-school Lisp programming.\
 Am I able to build a chess engine?
 
-How to:
-Place all Scheme (.scm) files into a project directory.
-#chess.scm is the main file.
+How to:\
+Place all Scheme (.scm) files into a project directory.\
+#chess.scm is the main file.\
 Load this in DrRacket and run.
 
 
