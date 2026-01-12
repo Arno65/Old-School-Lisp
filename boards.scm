@@ -21,6 +21,7 @@
 (provide Mate-in-2-white-02)
 
 
+;; FEN: rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq -
 (define initial-board
   (list
    (list (piece white Rook Castling) (piece white Knight) (piece white Bishop) (piece white Queen)

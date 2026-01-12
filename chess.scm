@@ -23,12 +23,13 @@
 ;;  version 0.01q   2026-01-10    Added promotion, Queen (major) or Knight (minor). Added some helper information.
 ;;  version 0.01r   2026-01-11    Bug repair for pawn take move. Added some opening moves and Mate-in-2 boards.
 ;;  version 0.01s   2026-01-12    Started the evaluator for the board position
+;;  version 0.01t   2026-01-12    Added FEN - first conversion from board to FEN
 ;;
 ;;
 ;; W.T.D.: Think about valuating a board position - then write the function...
 ;;         Add creating a list of moves in official chess notation
 ;;         Then... start the enigine with 'mate in 2' samples
-;;         Add FEN notation (input/output)
+;;         Add FEN (input/output)
 ;;
 ;;
 ;;  (cl) 2025-12-31, 2026-01-12 by Arno Jacobs
@@ -36,11 +37,19 @@
 ;; Info on chess
 ;;
 ;; Chess notation, primarily Algebraic Notation, is a system to record moves using piece initials
-;; (K, Q, R, B, N for King, Queen, Rook, Bishop, Knight; pawns have none), destination square coordinates
-;; (e.g., e4), 'x' for captures, '+' for check, '#' for checkmate, 'O-O'/'O-O-O' for castling,
-;; and '=' for promotion (e.g., e8=Q).
+;;      K, Q, R, B, N for King, Queen, Rook, Bishop, Knight; pawns have none
+;;      destination square coordinates (e.g., e4)
+;;      'x'            captures
+;;      '+'            check
+;;      '#'            checkmate
+;;      'O-O'/'O-O-O'  castling,
+;;      '='            promotion (e.g., e8=Q).
 ;;
-                                                                                                 
+;; Forsyth-Edwards Notation (FEN) is a standard, single-line text format to describe any given chess board position,
+;; encoding piece placement (using letters for pieces, numbers for empty squares, slashes for ranks),
+;; whose turn it is, castling rights, en passant targets, and move counters.
+;;
+
 ;; Using the 'scheme' language in DrRacket
 ;;
 #lang scheme
@@ -52,15 +61,18 @@
 (define code-info
   (string-append
    "\n\n* * *   a tiny and simple Lisp/Scheme chess engine   * * *\n\n"
-   "version 0.01s  "
+   "version 0.01t  "
    "(cl) 2025-12-31, 2026-01-12  by Arno Jacobs\n\n"))
 
+;; Chess board dimensions
+(define width  8)
+(define height 8)
 
 (define CheckMate 42)
 (define Quit      99)
 (define QuitGame (list (list Quit Quit) (list Quit Quit))) ;; format as a move
 
-(define NoMoves '())
+(define NoMoves null) ;; or '()
 
 ;; Helper for a promotion piece
 (define *promotion-piece* Queen)
@@ -167,13 +179,13 @@
 (define (display-correct-board board)
   (display "\n\n\n               The current board\n\n\n")
   ;; reverse so the first row is at the bottom 
-  (display (pretty-board (reverse board) 8))
+  (display (pretty-board (reverse board) height))
   (display "      a    b    c    d    e    f    g    h\n\n\n"))
       
 ;; Convert the board data to a string
 (define (display-board board)
-  (if (and (= (length board) 8)
-           (= (apply + (map length board)) 64))
+  (if (and (= (length board) width)
+           (= (apply + (map length board)) (* height width)))
       (display-correct-board board)
       (display "Incorrect 'board' data...\n\n")))
 
@@ -290,13 +302,13 @@
   (nth (nth board (- y 1)) (- x 1)))
 
 (define (safe-location-value board x y)
-    (if (or (< x 1) (> x 8) (< y 1) (> y 8))
+    (if (or (< x 1) (> x width) (< y 1) (> y height))
       outside
       (nth (nth board (- y 1)) (- x 1))))
 
 (define (safe-nth data index)
   (if (< (length data) (+ index 1))
-      '()
+      null
       (nth data index)))
 
 ;; A standard check for a move of King or Knight
@@ -484,7 +496,7 @@
 ;; All moves for an arbitrary piece on a arbitrary position
 ;;
 (define (moves-for-location board x y)
-  (if (or (< x 1) (> x 8) (< y 1) (> y 8))
+  (if (or (< x 1) (> x width) (< y 1) (> y height))
       NoMoves
       (let ((piece-value (location-value board x y)))
         (define apv (absolute-piece-value piece-value))
@@ -523,13 +535,13 @@
                     (transpose x y next-moves)))))))
 
 (define (all-moves-y board piece-colour y)
-  (do ((x 8 (- x 1))
-       (rv '() (cons (all-moves-x-y board piece-colour x y) rv)))
+  (do ((x width (- x 1))
+       (rv null (cons (all-moves-x-y board piece-colour x y) rv)))
     ((< x 1) rv )))
 
 (define (all-moves-loop board piece-colour)
-  (do ((y 8 (- y 1))
-       (rv '() (append (all-moves-y board piece-colour y) rv)))
+  (do ((y height (- y 1))
+       (rv null (append (all-moves-y board piece-colour y) rv)))
     ((< y 1) rv)))
 
 ;; This is the function without the King-check test 
@@ -578,27 +590,27 @@
   (and (= x1 x2) (= y1 y2)))
 
 (define (empty-location-y board ex ey y)
-  (do ((x 8 (- x 1))
-       (rv '() (cons (if (eq-location ex ey x y)
+  (do ((x width (- x 1))
+       (rv null (cons (if (eq-location ex ey x y)
                          empty
                          (location-value board x y)) rv)))
     ((< x 1) rv )))
 
 (define (empty-location board ex ey)
-  (do ((y 8 (- y 1))
-       (rv '() (cons (empty-location-y board ex ey y) rv)))
+  (do ((y height (- y 1))
+       (rv null (cons (empty-location-y board ex ey y) rv)))
     ((< y 1) rv)))
 
 (define (fill-location-y board piece-value px py y)
-  (do ((x 8 (- x 1))
-       (rv '() (cons (if (eq-location px py x y)
+  (do ((x width (- x 1))
+       (rv null (cons (if (eq-location px py x y)
                          piece-value
                          (location-value board x y)) rv)))
     ((< x 1) rv )))
 
 (define  (fill-location board piece-value px py)
-  (do ((y 8 (- y 1))
-       (rv '() (cons (fill-location-y board piece-value px py y) rv)))
+  (do ((y height (- y 1))
+       (rv null (cons (fill-location-y board piece-value px py y) rv)))
     ((< y 1) rv)))
 
 (define (work-next-standard-move board from-x from-y to-x to-y)
@@ -631,7 +643,7 @@
 
 (define (work-next-pawn-move board from-x from-y to-x to-y)
   ;; Test for promotion
-  (if (or (= 1 to-y) (= 8 to-y))
+  (if (or (= 1 to-y) (= height to-y))
       (work-promotion-move board from-x from-y to-x to-y)
       (if (and (= (abs (- from-x to-x)) 1) (= empty (location-value board to-x to-y)))
           (work-pawn-en-passant-take board from-x from-y to-x to-y)
@@ -642,8 +654,8 @@
 (define (work-castling-move board from-x from-y to-x to-y)
   (define board-1 (work-next-standard-move board from-x from-y to-x to-y))
   (if (= to-x 7)
-      (work-next-standard-move board-1 8 from-y 6 to-y)
-      (work-next-standard-move board-1 1 from-y 3 to-y)))
+      (work-next-standard-move board-1 height from-y 6 to-y)
+      (work-next-standard-move board-1 1      from-y 3 to-y)))
   
 (define (work-next-king-move board from-x from-y to-x to-y)
   (if (> (abs (- from-x to-x)) 1)
@@ -690,18 +702,18 @@
 ;; Check if a board position is 'Check'
 ;;
 (define (get-position-y board player-piece y)
-  (do ((x 8 (- x 1))
-       (rv '() (cons (if (= player-piece (get-piece-type (location-value board x y)))
+  (do ((x width (- x 1))
+       (rv null (cons (if (= player-piece (get-piece-type (location-value board x y)))
                          (list x y)
-                         '()) rv)))
+                         null) rv)))
     ((< x 1) rv )))
 
 (define (get-position board player-piece)
   (first
    (filter (lambda (ppos) (not (null? ppos))) 
            (apply append 
-                  (do ((y 8 (- y 1))
-                       (rv '() (cons (get-position-y board player-piece y) rv)))
+                  (do ((y height (- y 1))
+                       (rv null (cons (get-position-y board player-piece y) rv)))
                     ((< y 1) rv))))))
 
 (define (is-checked-by board player-colour)
@@ -739,6 +751,8 @@
 ;; Commands:
 ;;  b     show the current board
 ;;  c     play a Lisp-code-generated move
+;;  e     show the evaluation score of the current board position
+;;  f     show the FEN string of the current board position
 ;;  g     show all the previous moves
 ;;  h     show this helper information
 ;;  m     show all possible moves for the current player
@@ -758,6 +772,8 @@
   (display "  commands:\n")
   (display "    b     show the current board\n")
   (display "    c     play a Lisp-code-generated move\n")
+  (display "    e     show the evaluation score of the current board position\n")
+  (display "    f     show the FEN string of the current board position\n")
   (display "    g     show all the previous moves\n")
   (display "    h     show this helper information\n")
   (display "    m     show all possible moves for the current player\n")
@@ -785,6 +801,7 @@
               (cond ((equal? cmd #\b) (display-board board))
                     ((equal? cmd #\c) (Lisp-code-generated-move board player-colour))
                     ((equal? cmd #\e) (display-evaluation-score board player-colour))
+                    ((equal? cmd #\f) (display-FEN board player-colour))
                     ((equal? cmd #\g) (display-game game))
                     ((equal? cmd #\h) (display-helper-information))
                     ((equal? cmd #\m) (list-moves (all-moves board player-colour)))
@@ -831,9 +848,9 @@
         (else                  #\.)))
 
 (define (convert-piece-for-openings-library piece-value)
-  (let ((ptc (get-piece-character (abs (get-piece-type piece-value)))))
+  (let ((ptc (get-piece-character (absolute-piece-value piece-value))))
     (string
-     (if (= (colour piece-value) white) ;; Change colour notation to match with FEN
+     (if (= (colour piece-value) black)
          (integer->char (+ 32 (char->integer ptc)))
          ptc))))
          
@@ -849,6 +866,68 @@
   (display "\n")
   (display (opening-library-style board))
   (display "\n"))
+
+
+;; ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ---
+;; FEN conversions
+;; First: open library format to FEN
+;;
+;; Change the '.' for empty fields to the number of consecutive empty fields
+;;
+
+(define (count-empties-i rps)
+  (if (null? rps)
+      0
+      (if (equal? (first rps) #\.)
+          (+ 1 (count-empties-i (rest rps)))
+          0)))
+  
+(define (count-empties rps)
+  (integer->char (+ (count-empties-i rps) 48)))
+
+(define (skip-empties rps)
+  (if (null? rps)
+      null
+      (if (equal? (first rps) #\.)
+          (skip-empties (rest rps))
+          rps)))
+  
+(define (to-FEN-style-row rps)
+  (if (null? rps)
+      null
+      (let ((f (first rps)))
+        (if (equal? f #\.)
+            (cons (count-empties rps) (to-FEN-style-row (skip-empties rps)))
+            (cons f (to-FEN-style-row (rest rps)))))))
+
+(define (to-FEN-style pls)
+  (if (null? pls)
+      null
+      (cons
+       (cons #\/ (to-FEN-style-row (take pls width)))
+       (to-FEN-style     (drop pls width)))))
+
+;; Drop the first character of a string - safe
+(define (string-rest s)
+  (if (string=? s "")
+      ""
+      (list->string (rest (string->list s)))))
+
+(define (ols-to-FEN-style ols player-colour)
+  (let ((pls (string->list ols)))
+    (string-append
+     (string-rest
+      (apply string-append
+             (map list->string (to-FEN-style pls))))
+     " "
+     (if (= player-colour white) "w" "b")
+     " - -")))
+
+(define (display-FEN board player-colour)
+  (let ((ols (opening-library-style board)))
+    (display "\n")
+    (display (ols-to-FEN-style ols player-colour))
+    (display "\n")))
 
 ;; ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ---
 ;; Evaluate and score a board position for a given player
@@ -873,13 +952,13 @@
         
 
 (define (get-pieces-value-y board player-colour y)
-  (do ((x 8 (- x 1))
-       (rv '() (cons (get-piece-value-x-y board player-colour x y) rv)))
+  (do ((x width (- x 1))
+       (rv null (cons (get-piece-value-x-y board player-colour x y) rv)))
     ((< x 1) rv )))
 
 (define (get-pieces-value board player-colour)
-  (do ((y 8 (- y 1))
-       (rv '() (append (get-pieces-value-y board player-colour y) rv)))
+  (do ((y height (- y 1))
+       (rv null (append (get-pieces-value-y board player-colour y) rv)))
     ((< y 1) rv)))
 
 
