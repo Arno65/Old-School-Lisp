@@ -22,11 +22,12 @@
 ;;                                A first (not standard) list of moves is created, and at least shown at the end.
 ;;  version 0.01q   2026-01-10    Added promotion, Queen (major) or Knight (minor). Added some helper information.
 ;;  version 0.01r   2026-01-11    Bug repair for pawn take move. Added some opening moves and Mate-in-2 boards.
-;;  version 0.01s   2026-01-12    Started the evaluator for the board position
-;;  version 0.01t   2026-01-12    Added FEN - first conversion from board to FEN
-;;  version 0.01u   2026-01-14    Complete reformatting opening library and refactoring functions
+;;  version 0.01s   2026-01-12    Started the evaluator for the board position.
+;;  version 0.01t   2026-01-12    Added FEN - first conversion from board to FEN.
+;;  version 0.01u   2026-01-14    Complete reformatting opening library and refactoring functions.
 ;;  version 0.02a   2026-01-15    Starting 'best-move' function (now 1 ply only...)
 ;;  version 0.02b   2026-01-16    Only open e2-e4 for start-game (not for some 'mate in 2'...)
+;;                                Working on the 'deep-search' function.
 ;;
 ;;
 ;; W.T.D.: Think about valuating a board position - then write the function...
@@ -1059,9 +1060,29 @@
         (map (lambda (move) (move-score move board player-colour)) next-moves)
         (map (lambda (move) (move-score move board player-colour)) next-moves)))) ;;; uh.... next?
 
+
+(define (first-step-search move board player-colour)  
+  (let ((best-moves (filter-top-scores (deep-search 2 board (opponents-colour player-colour)))))
+    (random-element best-moves)))
+
+;;  (move-score move board player-colour))
+   
+
 (define (best-move board player-colour)
-  (let ((best-moves (filter-top-scores (deep-search 3 board player-colour))))   ;; depth is 3 for mat in two
-    (second (random-element best-moves))))
+  (let ((scored-moves
+         (map (lambda (move)
+                (first-step-search move board (opponents-colour player-colour)))
+              (all-moves-list board player-colour))))
+    (display (score-sort scored-moves))
+    (let ((best-moves (filter-top-scores scored-moves)))
+      (second (random-element best-moves)))))
+
+
+;;        (let ((best-moves (filter-top-scores (deep-search 2 board (opponents-colour player-colour)))))  
+;;        (second (random-element best-moves))))))
+
+
+
 
 ;; ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ---
 ;; Display the list of moves made in the game
