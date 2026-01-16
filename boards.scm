@@ -5,8 +5,9 @@
 ;;
 ;;  version 0.02a   2026-01-10    A version with two boards, incl. 'initial-board'
 ;;  version 0.02b   2026-01-11    Adding 'Mate in 2' boards
+;;  version 0.02c   2026-01-16    Adding 'Mate in 2' boards
 ;; 
-;;  (cl) 2025-12-31, 2026-01-11 by Arno Jacobs
+;;  (cl) 2025-12-31, 2026-01-16 by Arno Jacobs
 ;; ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ---
 ;;
 ;; Using the 'scheme' language in DrRacket
@@ -19,6 +20,7 @@
 (provide test-board)
 (provide Mate-in-2-white-01)
 (provide Mate-in-2-white-02)
+(provide Mate-in-2-black-01)
 
 
 ;; FEN: rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq -
@@ -89,6 +91,24 @@
    (list empty empty empty (piece black Knight) empty empty empty empty)
    (list (piece white Rook) empty empty empty empty empty empty (piece white Rook))
    (list empty empty empty (piece black King) empty empty empty empty)))
+
+
+;; Mate in 2 - black to play
+;; FEN: 5kBK/6rP/7n/8/8/8/8/8 b - -
+(define Mate-in-2-black-01
+  (list
+   (list empty empty empty empty empty empty empty empty)
+   (list empty empty empty empty empty empty empty empty)
+   (list empty empty empty empty empty empty empty empty)
+   (list empty empty empty empty empty empty empty empty)
+   (list empty empty empty empty empty empty empty empty)
+   (list empty empty empty empty
+         empty empty empty (piece black Knight))
+   (list empty empty empty empty empty
+         empty (piece black Rook) (piece white Pawn))
+   (list empty empty empty empty
+         empty (piece black King) (piece white Bishop) (piece white King))))
+
 
 ;; ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ---
 ;; Empty helper board - for endgame setup

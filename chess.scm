@@ -26,12 +26,14 @@
 ;;  version 0.01t   2026-01-12    Added FEN - first conversion from board to FEN
 ;;  version 0.01u   2026-01-14    Complete reformatting opening library and refactoring functions
 ;;  version 0.02a   2026-01-15    Starting 'best-move' function (now 1 ply only...)
+;;  version 0.02b   2026-01-16    Only open e2-e4 for start-game (not for some 'mate in 2'...)
 ;;
 ;;
 ;; W.T.D.: Think about valuating a board position - then write the function...
-;;         Add creating a list of moves in official chess notation
 ;;         Then... start the enigine with 'mate in 2' samples
 ;;         Add FEN (input/output)
+;;
+;;         Won't add the list of moves in official chess notation
 ;;
 ;;
 ;;  (cl) 2025-12-31, 2026-01-15 by Arno Jacobs
@@ -63,8 +65,8 @@
 (define code-info
   (string-append
    "\n\n* * *   a tiny and simple Lisp/Scheme chess engine   * * *\n\n"
-   "version 0.02a  "
-   "(cl) 2025-12-31, 2026-01-15  by Arno Jacobs\n\n"))
+   "version 0.02b  "
+   "(cl) 2025-12-31, 2026-01-16  by Arno Jacobs\n\n"))
 
 ;; Chess board dimensions
 (define width  8)
@@ -1008,17 +1010,19 @@
   (filter is-not-null (map (lambda (library-game) (get-opening-move game library-game)) library)))
 
 (define (Lisp-code-generated-move game board player-colour)
-  (if (null? game)
-      (list (list 5 2) (list 5 4))   ;; white will always open with "e2-e4"
-      (if (= player-colour white)
-          (let ((open-moves (get-opening-library-moves (reverse game) opening-library-white)))
-            (if (null? open-moves)
-                (best-move board player-colour)
-                (random-element open-moves)))
-          (let ((open-moves (get-opening-library-moves (reverse game) opening-library-black)))
-            (if (null? open-moves)
-                (best-move board player-colour)
-                (random-element open-moves))))))
+  (if (and (null? game) (equal? board initial-board))
+      (list (list 5 2) (list 5 4))   ;; white will always open with "e2-e4" with a new game
+      (if (null? game)               ;; in case of a 'mate-in-2' like puzzle... 
+          (best-move board player-colour)
+          (if (= player-colour white)
+              (let ((open-moves (get-opening-library-moves (reverse game) opening-library-white)))
+                (if (null? open-moves)
+                    (best-move board player-colour)
+                    (random-element open-moves)))
+              (let ((open-moves (get-opening-library-moves (reverse game) opening-library-black)))
+                (if (null? open-moves)
+                    (best-move board player-colour)
+                    (random-element open-moves)))))))
         
 
 
@@ -1144,12 +1148,14 @@
 
 (define (m2w1) (game Mate-in-2-white-01 white))
 (define (m2w2) (game Mate-in-2-white-02 white))
+(define (m2b1) (game Mate-in-2-black-01 black))
 
 ;;
 (t1)
 ;;(t2)
 ;;(m2w1)
 ;;(m2w2)
+;;(m2b1)
 
 ;;
 ;; End of code.
