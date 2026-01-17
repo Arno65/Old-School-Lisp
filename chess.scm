@@ -28,16 +28,18 @@
 ;;  version 0.02a   2026-01-15    Starting 'best-move' function (now 1 ply only...)
 ;;  version 0.02b   2026-01-16    Only open e2-e4 for start-game (not for some 'mate in 2'...)
 ;;                                Working on the 'deep-search' function.
+;;  version 0.02c   2026-01-17    Added some chess puzzles
 ;;
 ;;
-;; W.T.D.: Think about valuating a board position - then write the function...
+;; W.T.D.: It does not handle draws yet...
+;;         Think about valuating a board position - then write the function...
 ;;         Then... start the enigine with 'mate in 2' samples
 ;;         Add FEN (input/output)
 ;;
 ;;         Won't add the list of moves in official chess notation
 ;;
 ;;
-;;  (cl) 2025-12-31, 2026-01-15 by Arno Jacobs
+;;  (cl) 2025-12-31, 2026-01-17 by Arno Jacobs
 ;; ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ---
 ;; Info on chess
 ;;
@@ -66,8 +68,8 @@
 (define code-info
   (string-append
    "\n\n* * *   a tiny and simple Lisp/Scheme chess engine   * * *\n\n"
-   "version 0.02b  "
-   "(cl) 2025-12-31, 2026-01-16  by Arno Jacobs\n\n"))
+   "version 0.02c  "
+   "(cl) 2025-12-31, 2026-01-17  by Arno Jacobs\n\n"))
 
 ;; Chess board dimensions
 (define width  8)
@@ -746,6 +748,9 @@
             #f))))
 
 ;; Test all opponents legal moves to see if the 'Check' can be rescued
+;;
+;; Also test for a draw.
+;;
 (define (is-checkmate-by board player-colour)
   (let ((rescue-moves (all-moves-list-check-test board (opponents-colour player-colour))))
     (single-check-test board player-colour rescue-moves)))
@@ -1172,6 +1177,7 @@
 (define (m2w3) (game Mate-in-2-white-03 white))
 (define (m2w4) (game Mate-in-2-white-04 white))
 (define (m2b1) (game Mate-in-2-black-01 black))
+(define (m4w1) (game Mate-in-4-white-01 white))
 (define (mNw1) (game Mate-in-N-white-01 white))
 
 
@@ -1183,6 +1189,7 @@
 ;;(m2w3)
 ;;(m2w4)
 ;;(m2b1)
+;;(m4w1) 
 ;;(mNw1)
 
 ;;

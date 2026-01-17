@@ -24,6 +24,7 @@
 (provide Mate-in-2-white-03)
 (provide Mate-in-2-white-04)
 (provide Mate-in-2-black-01)
+(provide Mate-in-4-white-01)
 (provide Mate-in-N-white-01)
 
 
@@ -147,6 +148,23 @@
          empty (piece black Rook) (piece white Pawn))
    (list empty empty empty empty
          empty (piece black King) (piece white Bishop) (piece white King))))
+
+
+;; Mate in 4 - white to play
+;; FEN: 8/8/8/1p3P2/8/kPpN4/1pB5/1K3R2 w - -
+;; Stockfish: 1. Rf3 b4  2. Nxb2 cxb2  3. Bd3 Kxb3  4. Bb5# 
+;;
+(define Mate-in-4-white-01
+  (list
+   (list empty (piece white King) empty empty empty (piece white Rook) empty empty)
+   (list empty (piece black Pawn) (piece white Bishop) empty empty empty empty empty)
+   (list (piece black King) (piece white Pawn) (piece black Pawn) (piece white Knight)
+         empty empty empty empty)
+   (list empty empty empty empty empty empty empty empty)
+   (list empty (piece black Pawn) empty empty empty (piece white Pawn) empty empty)
+   (list empty empty empty empty empty empty empty empty)
+   (list empty empty empty empty empty empty empty empty)
+   (list empty empty empty empty empty empty empty empty)))
 
 
 ;; Mate in # - white to play
