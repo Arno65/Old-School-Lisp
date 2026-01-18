@@ -7,8 +7,9 @@
 ;;  version 0.02b   2026-01-11    Adding 'Mate in 2' boards
 ;;  version 0.02c   2026-01-16    Adding 'Mate in 2' boards
 ;;  version 0.02d   2026-01-17    Adding 'Mate in 2' boards (and a mate in N)
+;;  version 0.02e   2026-01-18    Removing the 'First-move' indicator
 ;; 
-;;  (cl) 2025-12-31, 2026-01-17 by Arno Jacobs
+;;  (cl) 2025-12-31, 2026-01-18 by Arno Jacobs
 ;; ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ---
 ;;
 ;; Using the 'scheme' language in DrRacket
@@ -26,6 +27,7 @@
 (provide Mate-in-2-black-01)
 (provide Mate-in-4-white-01)
 (provide Mate-in-N-white-01)
+(provide pre-draw)
 
 
 ;; FEN: rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq -
@@ -33,18 +35,14 @@
   (list
    (list (piece white Rook Castling) (piece white Knight) (piece white Bishop) (piece white Queen)
          (piece white King Castling) (piece white Bishop) (piece white Knight) (piece white Rook Castling))
-   (list (piece white Pawn First-Move) (piece white Pawn First-Move)
-         (piece white Pawn First-Move) (piece white Pawn First-Move)
-         (piece white Pawn First-Move) (piece white Pawn First-Move)
-         (piece white Pawn First-Move) (piece white Pawn First-Move))
+   (list (piece white Pawn) (piece white Pawn) (piece white Pawn) (piece white Pawn)
+         (piece white Pawn) (piece white Pawn) (piece white Pawn) (piece white Pawn))
    (list empty empty empty empty empty empty empty empty)
    (list empty empty empty empty empty empty empty empty)
    (list empty empty empty empty empty empty empty empty)
    (list empty empty empty empty empty empty empty empty)
-   (list (piece black Pawn First-Move) (piece black Pawn First-Move)
-         (piece black Pawn First-Move) (piece black Pawn First-Move)
-         (piece black Pawn First-Move) (piece black Pawn First-Move)
-         (piece black Pawn First-Move) (piece black Pawn First-Move))
+   (list (piece black Pawn) (piece black Pawn) (piece black Pawn) (piece black Pawn)
+         (piece black Pawn) (piece black Pawn) (piece black Pawn) (piece black Pawn))
    (list (piece black Rook Castling) (piece black Knight) (piece black Bishop) (piece black Queen)
          (piece black King Castling) (piece black Bishop) (piece black Knight) (piece black Rook Castling))))
 
@@ -53,18 +51,14 @@
   (list
    (list (piece white Rook Castling) (piece white Knight) (piece white Bishop) (piece white Queen)
          (piece white King Castling) (piece white Bishop) (piece white Knight) (piece white Rook Castling))
-   (list (piece white Pawn First-Move) (piece white Pawn First-Move)
-         (piece white Pawn First-Move) (piece white Pawn First-Move)
-         (piece white Pawn First-Move) (piece white Pawn First-Move)
-         (piece white Pawn First-Move) (piece white Pawn First-Move))
+   (list (piece white Pawn) (piece white Pawn) (piece white Pawn) (piece white Pawn)
+         (piece white Pawn) (piece white Pawn) (piece white Pawn) (piece white Pawn))
    (list empty empty empty empty empty empty empty empty)
    (list empty empty empty empty empty empty empty empty)
    (list empty empty empty empty empty empty empty empty)
    (list empty empty empty empty empty empty empty empty)
-   (list (piece black Pawn First-Move) (piece black Pawn First-Move)
-         (piece black Pawn First-Move) (piece black Pawn First-Move)
-         (piece black Pawn First-Move) (piece black Pawn First-Move)
-         (piece black Pawn First-Move) (piece black Pawn First-Move))
+   (list (piece black Pawn) (piece black Pawn) (piece black Pawn) (piece black Pawn)
+         (piece black Pawn) (piece black Pawn) (piece black Pawn) (piece black Pawn))
    (list (piece black Rook Castling) (piece black Knight) (piece black Bishop) (piece black Queen)
          (piece black King Castling) (piece black Bishop) (piece black Knight) (piece black Rook Castling))))
 
@@ -188,6 +182,23 @@
    (list empty empty (piece black Bishop) empty 
          (piece black King) empty empty empty)))
 
+
+
+;; ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ---
+;; A pre-draw situation
+;; White to move: a1-g6 
+;; Black is NOT checked but can't move
+(define pre-draw
+  (list
+   (list empty (piece white Bishop) empty empty empty empty (piece white King) empty)
+   (list empty empty empty empty empty empty empty empty)
+   (list empty empty empty empty empty empty empty empty)
+   (list empty empty empty empty empty empty empty empty)
+   (list (piece white Rook) empty empty empty empty empty empty empty)
+   (list empty empty empty empty empty empty empty empty)
+   (list empty empty empty empty empty empty (piece black Pawn) empty)
+   (list (piece white Rook) empty empty empty
+         empty empty (piece black Knight) (piece black King))))
 
 
 ;; ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ---

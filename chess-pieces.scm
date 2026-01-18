@@ -5,8 +5,9 @@
 ;;
 ;;  version 0.02a   2026-01-10    From a first draft of 'chess.scm', pieces data
 ;;  version 0.02b   2026-01-12    Added Piece & state values for the 'evaluate' function
+;;  version 0.03a   2026-01-18    Removing the 'First-move' indicator
 ;; 
-;;  (cl) 2025-12-31, 2026-01-12 by Arno Jacobs
+;;  (cl) 2025-12-31, 2026-01-18 by Arno Jacobs
 ;; ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ---
 ;;
 ;; Using the 'scheme' language in DrRacket
@@ -35,7 +36,6 @@
 (provide Rook-value)
 (provide Pawn-value)
 
-(provide First-Move)
 (provide En-Passant)
 (provide Castling)
 
@@ -63,9 +63,8 @@
 (define Pawn-value           1)
 
 ;; Piece states
-(define First-Move 10)
-(define En-Passant 20)
-(define Castling   30)
+(define En-Passant 10)
+(define Castling   20)
 
 ;; A helper function for creating a piece
 ;; Either 2 or 3 parameters

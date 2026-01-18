@@ -29,6 +29,9 @@
 ;;  version 0.02b   2026-01-16    Only open e2-e4 for start-game (not for some 'mate in 2'...)
 ;;                                Working on the 'deep-search' function.
 ;;  version 0.02c   2026-01-17    Added some chess puzzles
+;;  version 0.02d   2026-01-18    Removing the 'First-move' indicator, one function for a standard move of a piece
+;;                                Refactoring of the standard move, erase & fill in one go (one nested loop)
+;;                                Added a check for a draw position 
 ;;
 ;;
 ;; W.T.D.: It does not handle draws yet...
@@ -39,7 +42,7 @@
 ;;         Won't add the list of moves in official chess notation
 ;;
 ;;
-;;  (cl) 2025-12-31, 2026-01-17 by Arno Jacobs
+;;  (cl) 2025-12-31, 2026-01-18 by Arno Jacobs
 ;; ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ---
 ;; Info on chess
 ;;
@@ -68,22 +71,19 @@
 (define code-info
   (string-append
    "\n\n* * *   a tiny and simple Lisp/Scheme chess engine   * * *\n\n"
-   "version 0.02c  "
-   "(cl) 2025-12-31, 2026-01-17  by Arno Jacobs\n\n"))
+   "version 0.02d  "
+   "(cl) 2025-12-31, 2026-01-18  by Arno Jacobs\n\n"))
 
 ;; Chess board dimensions
 (define width  8)
 (define height 8)
 
-(define CheckMate 42)
+(define Checkmate 42)
+(define Draw      77)
 (define Quit      99)
 (define QuitGame (list (list Quit Quit) (list Quit Quit))) ;; format as a move
 
 (define NoMoves null) ;; or '()
-
-;; Testing if there is content in a list
-(define (is-not-null ls)
-  (if (null? ls) #f #t))
 
 ;; Helper for a promotion piece
 (define *promotion-piece* Queen)
@@ -160,8 +160,7 @@
 
 (define (pretty-state piece-value)
   (let ((pst (get-piece-state piece-value)))
-        (cond ((= pst First-Move) "1")
-              ((= pst En-Passant) "x")
+        (cond ((= pst En-Passant) "x")
               ((= pst Castling)   "%")
               (else               " "))))
               
@@ -322,6 +321,12 @@
       null
       (nth data index)))
 
+(define (is-empty board x y)
+  (= empty (location-value board x y)))
+
+(define (safe-is-empty board x y)
+  (= empty (safe-location-value board x y)))
+
 ;; A standard check for a move of King or Knight
 ;; Either move to an empty spot or move for a take of opponents piece 
 (define (check-move-King-Knight board x y piece-colour possible-move)
@@ -343,15 +348,15 @@
 ;; Here check the possible castling moves
 (define (check-castling-king-moves board x y piece-value)
   (if (= Castling (get-piece-state piece-value))
-      (append (if (and (= empty (safe-location-value board (- x 1) y))
-                       (= empty (safe-location-value board (- x 2) y))
-                       (= empty (safe-location-value board (- x 3) y))
+      (append (if (and (is-empty board (- x 1) y)
+                       (is-empty board (- x 2) y)
+                       (is-empty board (- x 3) y)
                        (= (piece (colour piece-value) Rook Castling)
                           (safe-location-value board (- x 4) y)))
                   '((-3 0))
                   NoMoves)
-              (if (and (= empty (safe-location-value board (+ x 1) y))
-                       (= empty (safe-location-value board (+ x 2) y))
+              (if (and (is-empty board (+ x 1) y)
+                       (is-empty board (+ x 2) y)
                        (= (piece (colour piece-value) Rook Castling)
                           (safe-location-value board (+ x 3) y)))
                   '((2 0))
@@ -436,30 +441,25 @@
   (let ((step-moves '((0 1) (0 2)))
         (take-moves '((-1 1) (1 1)))
         (piece-colour (colour piece-value))
-        (direction  (if (= (colour piece-value) white) 1 -1))
-        (first-move (= 1 (abs (quotient piece-value 10)))))
+        (direction  (if (= (colour piece-value) white) 1 -1)))
+    (define first-move
+      (or (and (= y 2) (= piece-colour white) (is-empty board x 3))
+          (and (= y 7) (= piece-colour black) (is-empty board x 6))))
     (check-pawn-moves board x y step-moves take-moves piece-colour direction first-move)))
 
 ;; ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ---
 ;; helper for Queen, Bishop and Rook moves
 ;;
 (define (one-moves-list moves)
-  (append
-   (safe-nth moves 0)
-   (safe-nth moves 1)
-   (safe-nth moves 2)
-   (safe-nth moves 3)
-   (safe-nth moves 4)
-   (safe-nth moves 5)
-   (safe-nth moves 6)
-   (safe-nth moves 7)))
+  (apply append (map (lambda (step) (safe-nth moves step)) '(0 1 2 3 4 5 6 7))))
+
 
 (define (walk-directional-step board x y dx dy step piece-colour)
   (let ((px (+ x (* dx step)))
         (py (+ y (* dy step))))
     (append
      (cond ((= (safe-location-value board px py) outside) NoMoves)
-           ((= (safe-location-value board px py) empty)
+           ((safe-is-empty board px py)
             (cons (list (* dx step) (* dy step))
                   (walk-directional-step board x y dx dy (+ step 1) piece-colour)))
            ((not (= piece-colour (colour (safe-location-value board px py))))
@@ -600,6 +600,7 @@
 (define (eq-location x1 y1 x2 y2)
   (and (= x1 x2) (= y1 y2)))
 
+;; Helper for erasing pawn after an en-passant move
 (define (empty-location-y board ex ey y)
   (do ((x width (- x 1))
        (rv null (cons (if (eq-location ex ey x y)
@@ -612,6 +613,8 @@
        (rv null (cons (empty-location-y board ex ey y) rv)))
     ((< y 1) rv)))
 
+
+;; Helper for changing the state of a piece (like remove the castling option)
 (define (fill-location-y board piece-value px py y)
   (do ((x width (- x 1))
        (rv null (cons (if (eq-location px py x y)
@@ -624,10 +627,25 @@
        (rv null (cons (fill-location-y board piece-value px py y) rv)))
     ((< y 1) rv)))
 
+;; Erase the 'from' location and fill the 'to' location
+(define (work-move-y board piece-value from-x from-y to-x to-y y)
+  (do ((x width (- x 1))
+       (rv null (cons (cond ((eq-location from-x from-y x y) empty)
+                            ((eq-location to-x   to-y   x y) piece-value)
+                            (else                            (location-value board x y)))
+                      rv )))
+    ((< x 1) rv )))
+
+(define  (work-move board piece-value from-x from-y to-x to-y)
+  (do ((y height (- y 1))
+       (rv null (cons (work-move-y board piece-value from-x from-y to-x to-y y) rv)))
+    ((< y 1) rv)))
+
+
 (define (work-next-standard-move board from-x from-y to-x to-y)
-  (let ((piece-type (get-piece-type (location-value board from-x from-y)))
-        (next-board (empty-location board from-x from-y)))
-    (fill-location next-board piece-type to-x to-y)))
+  (let ((piece-type (get-piece-type (location-value board from-x from-y))))
+    (work-move board piece-type from-x from-y to-x to-y)))
+
 
 (define (set-En-Passant piece-type)
   (if (< piece-type 0)
@@ -635,28 +653,25 @@
       (+ piece-type En-Passant)))
 
 (define (work-two-step-pawn-move board from-x from-y to-x to-y)
-  (let ((piece-type (get-piece-type (location-value board from-x from-y)))
-        (next-board (empty-location board from-x from-y)))
-    (fill-location next-board (set-En-Passant piece-type) to-x to-y)))
+  (let ((piece-type (get-piece-type (location-value board from-x from-y))))
+    (work-move board (set-En-Passant piece-type) from-x from-y to-x to-y)))
 
 ;; Work the En-Passant move!
 (define (work-pawn-en-passant-take board from-x from-y to-x to-y)
   (let ((next-board (work-next-standard-move board from-x from-y to-x to-y)))
     (empty-location next-board to-x from-y)))
 
-
 ;; Work the Promotion of the pawn
 ;; Ask for a major or minor promotion
 (define (work-promotion-move board from-x from-y to-x to-y)
-  (let ((piece-colour (colour (location-value board from-x from-y)))
-        (next-board (empty-location board from-x from-y)))
-    (fill-location next-board (* piece-colour *promotion-piece*) to-x to-y)))
+  (let ((piece-colour (colour (location-value board from-x from-y))))
+    (work-move board (* piece-colour *promotion-piece*) from-x from-y to-x to-y)))
 
 (define (work-next-pawn-move board from-x from-y to-x to-y)
   ;; Test for promotion
   (if (or (= 1 to-y) (= height to-y))
       (work-promotion-move board from-x from-y to-x to-y)
-      (if (and (= (abs (- from-x to-x)) 1) (= empty (location-value board to-x to-y)))
+      (if (and (= (abs (- from-x to-x)) 1) (is-empty board to-x to-y))
           (work-pawn-en-passant-take board from-x from-y to-x to-y)
           (if (= (abs (- from-y to-y)) 1)
               (work-next-standard-move board from-x from-y to-x to-y)
@@ -753,8 +768,13 @@
 ;;
 (define (is-checkmate-by board player-colour)
   (let ((rescue-moves (all-moves-list-check-test board (opponents-colour player-colour))))
-    (single-check-test board player-colour rescue-moves)))
+    (and (is-checked-by board player-colour)
+         (single-check-test board player-colour rescue-moves))))
 
+(define (is-draw-by board player-colour)
+  (let ((pieces (length (filter (lambda (piece) (not (= piece empty))) (apply append board)))))
+  (or (= pieces 2) ;; only two kings left
+      (null? (all-moves board player-colour)))))
 
 ;; ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ---
 ;; Read commands or moves from the keyboard
@@ -819,7 +839,7 @@
                     ((equal? cmd #\p) (set-minor-promotion))
                     ((equal? cmd #\P) (set-major-promotion))
                     ((equal? cmd #\s) (display (pretty-promotion-piece)))
-                    ((equal? cmd #\q) QuitGame)                    
+                    ((equal? cmd #\q)  QuitGame)                    
                     (else              NoMoves)))))))
 
 ;; Read, parse and check for legality of the move
@@ -1013,7 +1033,8 @@
         null)))
 
 (define (get-opening-library-moves game library)
-  (filter is-not-null (map (lambda (library-game) (get-opening-move game library-game)) library)))
+  (filter (lambda (ls) (not (null? ls)))
+          (map (lambda (library-game) (get-opening-move game library-game)) library)))
 
 (define (Lisp-code-generated-move game board player-colour)
   (if (and (null? game) (equal? board initial-board))
@@ -1073,14 +1094,23 @@
 ;;  (move-score move board player-colour))
    
 
+
+
 (define (best-move board player-colour)
   (let ((scored-moves
          (map (lambda (move)
                 (first-step-search move board (opponents-colour player-colour)))
               (all-moves-list board player-colour))))
+
+    (display "\nbest moves? ")
     (display (score-sort scored-moves))
+
     (let ((best-moves (filter-top-scores scored-moves)))
       (second (random-element best-moves)))))
+
+
+
+
 
 
 ;;        (let ((best-moves (filter-top-scores (deep-search 2 board (opponents-colour player-colour)))))  
@@ -1129,10 +1159,15 @@
       (string-append "\n* Check!  by " (pretty-colour-plus player-colour) "\n\n")
       ""))
 
-;; Extra function to show to board with the Checkmate position
-(define (check-mate-board board player-colour game)
+;; Function to show to board with the checkmate position
+(define (checkmate-board board player-colour game)
   (display-board board)
-  (cons (* player-colour CheckMate) game))
+  (cons (* player-colour Checkmate) game))
+
+;; Function to show to board with the a draw position
+(define (draw-board board player-colour game)
+  (display-board board)
+  (cons (* player-colour Draw) game))
 
 (define (game-loop board player-colour game)
   (display-board board)
@@ -1143,8 +1178,10 @@
         (let ((next-board (make-move board move))
               (next-game  (cons move game)))
           (if (is-checkmate-by next-board player-colour)
-              (check-mate-board next-board player-colour next-game)
-              (game-loop next-board (opponents-colour player-colour) next-game))))))
+              (checkmate-board next-board player-colour next-game)
+              (if (is-draw-by next-board (opponents-colour player-colour))
+                  (draw-board next-board player-colour next-game)
+                  (game-loop next-board (opponents-colour player-colour) next-game)))))))
 
 ;; Start the game-loop en show end status
 ;; Incl. Quit or Checkmate test
@@ -1153,12 +1190,18 @@
   (display "\nHave a good game!\n\n")
   (let ((game (game-loop board player-colour NoMoves)))
     (display-game (rest game))
-    (if (= (abs (first game)) CheckMate)
-        (display (string-append
-                  "\n* * *  Checkmate! * * *   by "
-                  (pretty-colour-plus (colour (first game)))
-                  "\n\nThanks for the game. Bye bye.\n\n"))
-        (display "\nYou quit, thanks for the game. Bye bye.\n\n"))))
+    (define game-state (abs (first game)))
+    (cond ((= game-state Checkmate)
+           (display (string-append
+                     "\n* * *  Checkmate! * * *   by "
+                     (pretty-colour-plus (colour (first game)))
+                     "\n\nThanks for the game. Bye bye.\n\n")))
+           ((= game-state Draw)
+            (display (string-append
+                      "\n* a draw * "
+                     "\n\nThanks for the game. Bye bye.\n\n")))
+           (else             
+            (display "\nYou quit, thanks for the game. Bye bye.\n\n")))))
 
 
 ;;
@@ -1179,6 +1222,7 @@
 (define (m2b1) (game Mate-in-2-black-01 black))
 (define (m4w1) (game Mate-in-4-white-01 white))
 (define (mNw1) (game Mate-in-N-white-01 white))
+(define (pD)   (game pre-draw white))
 
 
 ;;
@@ -1191,6 +1235,9 @@
 ;;(m2b1)
 ;;(m4w1) 
 ;;(mNw1)
+;;(pD)
+
+
 
 ;;
 ;; End of code.
