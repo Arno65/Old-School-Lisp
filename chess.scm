@@ -34,12 +34,10 @@
 ;;                                Added a check for a draw position 
 ;;
 ;;
-;; W.T.D.: It does not handle draws yet...
-;;         Think about valuating a board position - then write the function...
+;; W.T.D.: Think about valuating a board position - then write the function...
 ;;         Then... start the enigine with 'mate in 2' samples
-;;         Add FEN (input/output)
-;;
-;;         Won't add the list of moves in official chess notation
+;;         
+;;         Won't add FEN and the list of moves in official chess notation
 ;;
 ;;
 ;;  (cl) 2025-12-31, 2026-01-18 by Arno Jacobs
