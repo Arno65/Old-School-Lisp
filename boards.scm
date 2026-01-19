@@ -8,8 +8,9 @@
 ;;  version 0.02c   2026-01-16    Adding 'Mate in 2' boards
 ;;  version 0.02d   2026-01-17    Adding 'Mate in 2' boards (and a mate in N)
 ;;  version 0.02e   2026-01-18    Removing the 'First-move' indicator
+;;  version 0.02f   2026-01-19    Adding 'Mate in 2' boards
 ;; 
-;;  (cl) 2025-12-31, 2026-01-18 by Arno Jacobs
+;;  (cl) 2025-12-31, 2026-01-19 by Arno Jacobs
 ;; ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ---
 ;;
 ;; Using the 'scheme' language in DrRacket
@@ -24,6 +25,7 @@
 (provide Mate-in-2-white-02)
 (provide Mate-in-2-white-03)
 (provide Mate-in-2-white-04)
+(provide Mate-in-2-white-05)
 (provide Mate-in-2-black-01)
 (provide Mate-in-4-white-01)
 (provide Mate-in-N-white-01)
@@ -124,7 +126,20 @@
    (list (piece white Rook) empty empty empty
          empty empty (piece black Pawn) (piece black King))))
 
-
+;; Mate in 2 - white to play
+;; FEN: 6K1/8/6R1/6R1/8/8/8/k5qQ w - -
+;; Stockfish: 1. Rb6 Qb1   2. Qxb1# 
+;;
+(define Mate-in-2-white-05
+  (list
+   (list (piece black King) empty empty empty empty empty (piece black Queen) (piece white Queen))
+   (list empty empty empty empty empty empty empty empty)
+   (list empty empty empty empty empty empty empty empty)
+   (list empty empty empty empty empty empty empty empty)
+   (list empty empty empty empty empty empty (piece white Rook) empty)
+   (list empty empty empty empty empty empty (piece white Rook) empty)
+   (list empty empty empty empty empty empty empty empty)
+   (list empty empty empty empty empty empty (piece white King) empty)))
 
 ;; Mate in 2 - black to play
 ;; FEN: 5kBK/6rP/7n/8/8/8/8/8 b - -
@@ -159,7 +174,6 @@
    (list empty empty empty empty empty empty empty empty)
    (list empty empty empty empty empty empty empty empty)
    (list empty empty empty empty empty empty empty empty)))
-
 
 ;; Mate in # - white to play
 ;; FEN: 2b1k3/K7/2PP4/8/8/8/8/8 w - -

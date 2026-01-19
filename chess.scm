@@ -1219,6 +1219,7 @@
 (define (m2w2) (game Mate-in-2-white-02 white))
 (define (m2w3) (game Mate-in-2-white-03 white))
 (define (m2w4) (game Mate-in-2-white-04 white))
+(define (m2w5) (game Mate-in-2-white-05 white))
 (define (m2b1) (game Mate-in-2-black-01 black))
 (define (m4w1) (game Mate-in-4-white-01 white))
 (define (mNw1) (game Mate-in-N-white-01 white))
@@ -1232,6 +1233,7 @@
 ;;(m2w2)
 ;;(m2w3)
 ;;(m2w4)
+;;(m2w5)
 ;;(m2b1)
 ;;(m4w1) 
 ;;(mNw1)
@@ -1239,6 +1241,66 @@
 
 
 
+
+;; Very simplified recursive minimax (without alpha-beta yet)
+
+;; Helpers . . . 
+(define (material-for players-colour board) 1)
+(define (checkmate? board) #f)
+(define (stalemate? board) #f)
+(define (terminal-value board) 1)
+(define infinity 999999999)
+(define (for-each-legal-move board players-colour) 1)
+(define (make-move! board move) 1)
+(define (undo-move! board move) 1)
+(define (better-score? s bs c) #f)
+
+
+
+(define (evaluate-X board)          ; very naive example
+  (- (material-for 'white board)
+     (material-for 'black board)))
+
+(define (minimax board depth maximizing?)
+  (cond ((or (checkmate? board) (stalemate? board))
+         (terminal-value board))
+        
+        ((zero? depth)
+         (evaluate board))
+        
+        (maximizing?
+         (let ((best (- infinity)))
+           (for-each-legal-move board 'white
+             (lambda (move)
+               (make-move! board move)
+               (set! best (max best (minimax board (- depth 1) #f)))
+               (undo-move! board move)))
+           best))
+        
+        (else   ; minimizing player
+         (let ((best infinity))
+           (for-each-legal-move board 'black
+             (lambda (move)
+               (make-move! board move)
+               (set! best (min best (minimax board (- depth 1) #t)))
+               (undo-move! board move)))
+           best))))
+
+;; Choosing best move at root (with move ordering improvement later)
+(define (find-best-move board depth color)
+  (let ((best-score (if (eq? color 'white) (- infinity) infinity))
+        (best-move  #f))
+    (for-each-legal-move board color
+      (lambda (move)
+        (make-move! board move)
+        (let ((score (minimax board (- depth 1) (not (eq? color 'white)))))
+          (undo-move! board move)
+          (when (better-score? score best-score color)
+            (set! best-score score)
+            (set! best-move move))))
+    best-move)))
+
+  
 ;;
 ;; End of code.
 ;; ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ---
