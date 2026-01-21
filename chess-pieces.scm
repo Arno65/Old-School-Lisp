@@ -31,6 +31,7 @@
 
 (provide Checkmate-value)
 (provide Checkmate-range)
+(provide Stalemate-value)
 (provide Check-value)
 (provide Queen-value)
 (provide Bishop-value)
@@ -60,6 +61,7 @@
 ;; Piece and state values
 (define Checkmate-value 9999999)
 (define Checkmate-range  999999)
+(define Stalemate-value    9999)
 (define Check-value         420)
 (define Queen-value         900)
 (define Rook-value          500)

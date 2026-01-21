@@ -33,11 +33,9 @@
 ;;                                Refactoring of the standard move, erase & fill in one go (one nested loop)
 ;;                                Added a check for a draw position 
 ;;  version 0.02e   2026-01-20    Some refactoring - struggles with 'tree-search'
-;;  version 0.02f   2026-01-21    More work on the 'tree-search'
+;;  version 0.02f   2026-01-21    More work on the 'tree-search' -- almost working 0K. 
 ;;
 ;;
-;; W.T.D.: Think about valuating a board position - then write the function...
-;;         Then... start the enigine with 'mate in 2' samples (somewhere around lines 1100)
 ;;
 ;;  (cl) 2025-12-31, 2026-01-21 by Arno Jacobs
 ;; ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ---
@@ -77,6 +75,8 @@
 ;; Chess board dimensions
 (define width  8)
 (define height 8)
+
+(define search-depth 3)
 
 (define Checkmate 42)
 (define Draw      77)
@@ -1073,17 +1073,14 @@
                     (best-move board player-colour)
                     (random-element open-moves))))
           (best-move board player-colour))))
-                    
+
+
 ;;
 ;; ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ---
-;; Mate-in-2 ?
-;; min-max only
-;; no alpha-beta pruning
+;; Mate-in-2  -  min-max only   -   no alpha-beta pruning
 ;;
 ;; ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ---
-;;
 ;;  Work in progress . . .
-;;
 
 ;; Sort with highest scores at the top
 (define (score-sort scores)
@@ -1101,31 +1098,39 @@
   (let ((scs (score-sort scores)))
     (define top-score (first (first scs)))
     (filter (lambda (score) (= (first score) top-score)) scores)))
-        
-(define (move-score move board player-colour)
-  (if (null? move)
-      NoMoves
-      (list (evaluate (make-move board move) player-colour) move)))
-
-
-;; Only 1 ply now...
-(define (search-tree move board player-colour)
-  (define dsc (move-score move board player-colour))
-  (if (> (first dsc) Checkmate-range)
-      Checkmate-value
-      (first dsc)))
       
+
+(define (search-tree move board player-colour depth)
+  (if (null? move)
+      Stalemate-value ;; Either this or the negative value ???
+      (let ((next-board (make-move board move)))
+        (define board-score (evaluate next-board player-colour))
+        (if (> board-score Checkmate-range)
+            (* depth Checkmate-value)
+            (if (= depth 1)
+                board-score
+                (let ((next-opponents-moves (all-moves-list next-board (opponents-colour player-colour))))
+                  (* depth
+                     (if (null? next-opponents-moves)
+                      (negate Stalemate-value)
+                      (negate (apply max
+                                     (map (lambda (move)
+                                            (search-tree move
+                                                         next-board
+                                                         (opponents-colour player-colour)
+                                                         (- depth 1))
+                                            ) next-opponents-moves )))))))))))
 
 (define (best-move board player-colour)
   (let ((next-player-moves (all-moves-list board player-colour)))
     (define scored-moves
       (map (lambda (move)
-             (list (search-tree move board player-colour) move)) next-player-moves))
-
-    (display "\nbest moves? ")
+             (list (search-tree move board player-colour search-depth) move)) next-player-moves)) 
+    (display "\nbest moves: ")
     (let ((best-moves (filter-top-scores scored-moves)))
       (display best-moves)
       (second (random-element best-moves)))))
+
 
 ;; ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ---
 ;; Display the list of moves made in the game
@@ -1232,13 +1237,15 @@
 (define (pD)   (play-chess pre-draw           white))
 (define (tM)   (play-chess middle-board       black))
 
-;;
-(t1)
-;;(m2w1)
+;;(t1)
+
+;; Mate-in-2 is not correct yet. SO NOT 0K.
+;;(m2w1)     
 ;;(m2w2)
-;;(m2w3)
-;;(m2w4)
-;;(m2w5)
+;;
+(m2w3)
+;;(m2w4) 
+;;(m2w5) 
 ;;(m2w6)
 ;;(m2b1)
 ;;(m4w1) 
