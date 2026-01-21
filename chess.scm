@@ -65,19 +65,15 @@
 (require "opening-library.scm")
 
 ;; If run in DrRacket there is no ansi-colour functionality 
-(define InRacket #t)
-
-(define code-info
-  (string-append
-   "\n\n* * *   a tiny and simple Lisp/Scheme chess engine   * * *\n\n"
-   "version 1.00a  "
-   "(cl) 2025-12-31, 2026-01-21  by Arno Jacobs\n\n"))
+(define InRacket #f)
 
 ;; Chess board dimensions
 (define width  8)
 (define height 8)
 
 (define search-depth 3)  ;; mate-in-2
+;; (define search-depth 4)  ;; just for a game 
+;; (define search-depth 5)  ;; mate-in-3
 ;; (define search-depth 7)  ;; mate-in-4
 
 (define Checkmate 42)
@@ -95,6 +91,13 @@
 
 (define (major-promotion)
   (set! *promotion-piece* Queen))
+
+(define code-info
+  (string-append
+   "\n\n* * *   a tiny and simple Lisp/Scheme chess engine   * * *\n\n"
+   "version 1.00a  ("
+   (number->string search-depth)
+   " ply)   (cl) 2025-12-31, 2026-01-21  by Arno Jacobs\n\n"))
 
 (define (pretty-promotion-piece)
   (string-append "\nPromotion piece is set to " (pretty-type-plus *promotion-piece*) "\n" ))
@@ -1241,15 +1244,15 @@
 ;;(t1)
 
 ;; Mate-in-2 is not correct yet. SO NOT 0K.
-;;(m2w1)     
+;;(m2w1)
 ;;(m2w2)
 ;;
 (m2w3)
-;;(m2w4) 
-;;(m2w5) 
+;;(m2w4)
+;;(m2w5)
 ;;(m2w6)
 ;;(m2b1)
-;;(m4w1) 
+;;(m4w1)
 ;;(mNw1)
 ;;(pD)
 ;;(tM)
