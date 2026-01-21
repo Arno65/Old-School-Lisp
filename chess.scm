@@ -33,12 +33,13 @@
 ;;                                Refactoring of the standard move, erase & fill in one go (one nested loop)
 ;;                                Added a check for a draw position 
 ;;  version 0.02e   2026-01-20    Some refactoring - struggles with 'tree-search'
+;;  version 0.02f   2026-01-21    More work on the 'tree-search'
 ;;
 ;;
 ;; W.T.D.: Think about valuating a board position - then write the function...
-;;         Then... start the enigine with 'mate in 2' samples
+;;         Then... start the enigine with 'mate in 2' samples (somewhere around lines 1100)
 ;;
-;;  (cl) 2025-12-31, 2026-01-20 by Arno Jacobs
+;;  (cl) 2025-12-31, 2026-01-21 by Arno Jacobs
 ;; ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ---
 ;; Info on chess
 ;;
@@ -67,8 +68,8 @@
 (define code-info
   (string-append
    "\n\n* * *   a tiny and simple Lisp/Scheme chess engine   * * *\n\n"
-   "version 0.02e  "
-   "(cl) 2025-12-31, 2026-01-20  by Arno Jacobs\n\n"))
+   "version 0.02f  "
+   "(cl) 2025-12-31, 2026-01-21  by Arno Jacobs\n\n"))
 
 ;; Chess board dimensions
 (define width  8)
@@ -952,7 +953,6 @@
         0
         (get-piece-value-2 (absolute-piece-value piece-type) pawn-factor))))
         
-
 (define (get-pieces-value-y board player-colour y)
   (do ((x width (- x 1))
        (rv null (cons (get-piece-value-x-y board player-colour x y) rv)))
@@ -963,16 +963,39 @@
        (rv null (append (get-pieces-value-y board player-colour y) rv)))
     ((< y 1) rv)))
 
+;; --- --- Knight bonusses code --- --- --- --- --- --- --- --- ---
+;;
+;; No range checking...
+(define (knight-bonus kx ky)
+  (nth (nth Knight-position-bonus (- ky 1)) (- kx 1)))
 
+(define (knight-bonus-xy board player-colour kx ky)
+  (let ((piece-type (location-value board kx ky)))
+    (if (= piece-type (* player-colour Knight))
+        (knight-bonus kx ky)
+        0)))
+    
+(define (knight-bonusses-y board player-colour y)
+  (do ((x width (- x 1))
+       (rv null (cons (knight-bonus-xy board player-colour x y) rv)))
+    ((< x 1) rv )))
+
+(define (knight-bonusses board player-colour)
+  (apply + (do ((y height (- y 1))
+                (rv null (append (knight-bonusses-y board player-colour y) rv )))
+             ((< y 1) rv))))
 
 (define (evaluate board player-colour)
   (let ((player-pieces-values    (get-pieces-value board player-colour))
         (opponents-pieces-values (get-pieces-value board (opponents-colour player-colour)))
+        (sum-knight-bonus        (-  (knight-bonusses board player-colour)
+                                     (knight-bonusses board (opponents-colour player-colour))))
         (checked-by-player       (is-checked-by? board player-colour))
         (checked-by-opponent     (is-checked-by? board (opponents-colour player-colour))))
     (apply + (list 
               (apply + player-pieces-values)
               (negate (apply + opponents-pieces-values))
+              sum-knight-bonus
               (if checked-by-player
                   (if (is-checkmate-by? board player-colour)
                       Checkmate-value
@@ -1033,24 +1056,15 @@
                     (random-element open-moves))))
           (best-move board player-colour))))
                     
-        
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 ;;
 ;; ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ---
 ;; Mate-in-2 ?
+;; min-max only
+;; no alpha-beta pruning
+;;
+;; ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ---
+;;
+;;  Work in progress . . .
 ;;
 
 ;; Sort with highest scores at the top
@@ -1076,45 +1090,24 @@
       (list (evaluate (make-move board move) player-colour) move)))
 
 
-
-
 ;; Only 1 ply now...
 (define (search-tree move board player-colour)
   (define dsc (move-score move board player-colour))
-  (first dsc))
-
+  (if (> (first dsc) Checkmate-range)
+      Checkmate-value
+      (first dsc)))
+      
 
 (define (best-move board player-colour)
   (let ((next-player-moves (all-moves-list board player-colour)))
     (define scored-moves
       (map (lambda (move)
              (list (search-tree move board player-colour) move)) next-player-moves))
-    
+
     (display "\nbest moves? ")
     (let ((best-moves (filter-top-scores scored-moves)))
       (display best-moves)
       (second (random-element best-moves)))))
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 ;; ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ---
 ;; Display the list of moves made in the game
@@ -1201,18 +1194,13 @@
                      "\n\nThanks for the game. Bye bye.\n\n")))
            (else             
             (display "\nYou quit, thanks for the game. Bye bye.\n\n")))))
-      
 
-
-(define (game a) 0)
 
 ;;
 ;; ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ---
 ;; Testing & debugging . . .
 ;;
 
-
-;;
 (define (t1)   (play-chess initial-board      white))
 (define (m2w1) (play-chess Mate-in-2-white-01 white))
 (define (m2w2) (play-chess Mate-in-2-white-02 white))
@@ -1224,12 +1212,12 @@
 (define (m4w1) (play-chess Mate-in-4-white-01 white))
 (define (mNw1) (play-chess Mate-in-N-white-01 white))
 (define (pD)   (play-chess pre-draw           white))
+(define (tM)   (play-chess middle-board       black))
 
-
-;;(t1)
-;;(m2w1)
 ;;
-(m2w2)
+(t1)
+;;(m2w1)
+;;(m2w2)
 ;;(m2w3)
 ;;(m2w4)
 ;;(m2w5)
@@ -1238,6 +1226,7 @@
 ;;(m4w1) 
 ;;(mNw1)
 ;;(pD)
+;;(tM)
 
 
 ;;

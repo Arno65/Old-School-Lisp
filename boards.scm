@@ -4,13 +4,14 @@
 ;;  Creating a Chess engine in Lisp (using Scheme in Racket)
 ;;
 ;;  version 0.02a   2026-01-10    A version with two boards, incl. 'initial-board'
-;;  version 0.02b   2026-01-11    Adding 'Mate in 2' boards
-;;  version 0.02c   2026-01-16    Adding 'Mate in 2' boards
-;;  version 0.02d   2026-01-17    Adding 'Mate in 2' boards (and a mate in N)
+;;  version 0.02b   2026-01-11    Added 'Mate in 2' boards
+;;  version 0.02c   2026-01-16    Added 'Mate in 2' boards
+;;  version 0.02d   2026-01-17    Added 'Mate in 2' boards (and a mate in N)
 ;;  version 0.02e   2026-01-18    Removing the 'First-move' indicator
-;;  version 0.02f   2026-01-20    Adding 'Mate in 2' boards
+;;  version 0.02f   2026-01-20    Added 'Mate in 2' boards
+;;  version 0.02g   2026-01-21    Added a test board
 ;; 
-;;  (cl) 2025-12-31, 2026-01-20 by Arno Jacobs
+;;  (cl) 2025-12-31, 2026-01-21 by Arno Jacobs
 ;; ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ---
 ;;
 ;; Using the 'scheme' language in DrRacket
@@ -30,6 +31,7 @@
 (provide Mate-in-4-white-01)
 (provide Mate-in-N-white-01)
 (provide pre-draw)
+(provide middle-board)
 
 
 ;; FEN: rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq -
@@ -226,6 +228,19 @@
    (list empty empty empty empty empty empty empty empty)
    (list empty empty empty empty empty empty empty empty)))
 
+
+;; ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ---
+;; Test board - helper for 'best-move'
+(define middle-board
+  (list
+   (list 22 0 4 5 0 2 6 0)
+   (list 1 1 0 3 0 1 1 1)
+   (list 0 0 1 0 0 3 0 0)
+   (list 0 0 0 0 1 0 0 0)
+   (list 0 4 -4 0 -1 0 0 0)
+   (list 0 0 -3 0 0 -3 0 0)
+   (list -1 -1 -1 0 0 -1 -1 -1)
+   (list -22 0 -4 -5 0 -2 -6 0)))
 
 ;; ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ---
 ;;
