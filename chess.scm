@@ -65,6 +65,9 @@
 (require "chess-pieces.scm")
 (require "opening-library.scm")
 
+;; If run in DrRacket there is no ansi-colour functionality 
+(define InRacket #t)
+
 (define code-info
   (string-append
    "\n\n* * *   a tiny and simple Lisp/Scheme chess engine   * * *\n\n"
@@ -130,7 +133,7 @@
 
 ;; All pretty functions convert board & piece data to strings
 (define (pretty-colour piece-value)
-  (if (= empty piece-value)
+  (if (or (not InRacket) (= empty piece-value))
       " "
       (if (= (colour piece-value) white)
           "w"
@@ -149,19 +152,34 @@
               ((= apv Knight) "N")
               ((= apv Rook)   "R")
               ((= apv Pawn)   "p")
-              (else           "_"))))              
+              (InRacket       "_")
+              (else           " "))))
 
 (define (pretty-state piece-value)
   (let ((pst (get-piece-state piece-value)))
         (cond ((= pst En-Passant) "x")
               ((= pst Castling)   "%")
               (else               " "))))
-              
+
+(define (set-pretty-colour piece-value)
+  (if (not InRacket)
+      (if (< piece-value 0)          ;; \033[1m for bold characters
+          "\033[102m\033[30m\033[1m" ;; 102 bright green background   30 black foreground
+          "\033[40m\033[97m\033[1m") ;; 40 black background           97 bright white forground
+      ""))
+
+(define reset-pretty-colour
+  (if (not InRacket)
+      "\033[0m"                      ;; reset code
+      ""))
+
 (define (pretty-piece piece-value)
   (let ((piece-colour (pretty-colour piece-value))
         (piece-type   (pretty-type   piece-value))
         (piece-state  (pretty-state  piece-value)))
-        (string-append piece-colour piece-type piece-state)))
+        (string-append (set-pretty-colour piece-value)
+                       piece-colour piece-type piece-state
+                       reset-pretty-colour)))
 
 (define (pretty-line-of-pieces piece-values)
   (if (null? piece-values)
@@ -180,7 +198,7 @@
                      (pretty-board (rest board) (- line 1)))))
 
 (define (display-correct-board board)
-  (display "\n\n\n               The current board\n\n\n")
+  (display "\n\n\n")
   ;; reverse so the first row is at the bottom 
   (display (pretty-board (reverse board) height))
   (display "      a    b    c    d    e    f    g    h\n\n\n"))
@@ -1227,6 +1245,7 @@
 ;;(mNw1)
 ;;(pD)
 ;;(tM)
+
 
 
 ;;
