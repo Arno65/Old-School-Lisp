@@ -8,8 +8,11 @@
   This is a learning project.\
   It's a work in progress and at the moment the code is a bit of a mess...\
   Learn old-school Lisp programming.\
-  Am I able to build a chess engine?
+  Am I able to build a chess engine? . . .  for mate in 4, yes
 
+  For a speedtest the Scheme code was converted to Common Lisp (SBCL). These files are also added.\
+  The CL code is slower.
+  
     How to:
     Place all Scheme (.scm) files into a project directory.
     "chess.scm" is the main file.
