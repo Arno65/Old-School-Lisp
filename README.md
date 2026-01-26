@@ -12,7 +12,9 @@
 
   For a speedtest the Scheme code was converted to Common Lisp (SBCL). These files are also added.\
   The CL code is slower.
-  Next I made the changes for Chez Scheme. This is the quickest version. 
+  
+  Next I made the changes for Chez Scheme. This is the quickest version.\
+  The Chez Scheme version is my favorite.
   
     'How to' for the Dr.Racket:
     Place all Scheme (.scm) files into a project directory.
