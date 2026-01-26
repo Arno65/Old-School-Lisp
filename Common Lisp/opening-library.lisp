@@ -1,7 +1,7 @@
 ;; ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ---
 ;; "opening-library.lisp"
 ;;
-;;  Creating a Chess engine in Lisp (using Scheme in Racket)
+;;  Creating a Chess engine in Common Lisp
 ;;
 ;;  version 0.02a   2026-01-10    An opening library for my chess engine
 ;;                                A first minimal version, working jusr fine

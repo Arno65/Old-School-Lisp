@@ -2,7 +2,7 @@
 ;; "chess-initials.lisp"
 ;;  mainly 'boards'
 ;;
-;;  Creating a Chess engine in Lisp (using Scheme in Racket)
+;;  Creating a Chess engine in Common Lisp
 ;;
 ;;  version 0.02a   2026-01-10    A version with two boards, incl. 'initial-board'
 ;;  version 0.02b   2026-01-11    Added 'Mate in 2' boards

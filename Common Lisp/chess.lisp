@@ -1,5 +1,7 @@
 ;; ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ---
-;;  Creating a Chess engine in Lisp (using Scheme in Racket)
+;; "chess.lisp"
+;;
+;;  Creating a Chess engine in Common Lisp
 ;;
 ;;  version 0.01a   2025-12-28    A very first draft. Initialising things that could be of good use.
 ;;  version 0.01b   2025-12-29    Added piece and board data and pretty printing.
@@ -42,31 +44,13 @@
 ;;  version 1.01b   2026-01-24    The common lisp version - issues with apply, map, reduce and member
 ;;  version 1.01c   2026-01-25    No correct board evaluation - work on computer move
 ;;  version 1.01d   2026-01-25    Complete correct working conversion from Scheme to Common Lisp
+;;  version 1.10a   2026-01-26    Small changes
+;;                                run: sbcl --noinform --load $1.lisp --eval '(main)' --quit
 ;;
 ;;
-;;  (cl) 2025-12-31, 2026-01-25 by Arno Jacobs
+;;  (cl) 2025-12-31, 2026-01-26 by Arno Jacobs
 ;; ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ---
-;; Info on chess
 ;;
-;; Chess notation, primarily Algebraic Notation, is a system to record moves using piece initials
-;;      K, Q, R, B, N for King, Queen, Rook, Bishop, Knight; pawns have none
-;;      destination square coordinates (e.g., e4)
-;;      'x'            captures
-;;      '+'            check
-;;      '#'            checkmate
-;;      'O-O'/'O-O-O'  castling,
-;;      '='            promotion (e.g., e8=Q).
-;;
-;; Forsyth-Edwards Notation (FEN) is a standard, single-line text format to describe any given chess board position,
-;; encoding piece placement (using letters for pieces, numbers for empty squares, slashes for ranks),
-;; whose turn it is, castling rights, en passant targets, and move counters.
-;;
-
-;; Doesn't do much...
-(declaim (optimize (speed 3)      ; ← most important for runtime speed
-                   (safety 0)     ; disable bounds/type checks
-                   (debug 0)      ; no debugger info
-                   (compilation-speed 0)))
 
 (load "chess-initials.lisp")
 (load "opening-library.lisp")
@@ -89,10 +73,10 @@
 
 (defun code-info ()
     (format t "~%~%~A~%~%~A~A~A~%~%" 
-        "* * *   a tiny and simple Common Lisp chess engine   * * *"
-        "version 1.01d   ("
+        "* * *   a tiny and simple  (Common Lisp)  chess engine   * * *"
+        "version 1.10a   ("
         search-depth
-        " ply)   (cl) 2025-12-31, 2026-01-25  by Arno Jacobs"))
+        " ply)   (cl) 2025-12-31, 2026-01-26  by Arno Jacobs"))
 
 ;; Helper for a promotion piece
 (defparameter *promotion-piece* Queen)
@@ -144,7 +128,7 @@
                     ((= apv Knight) "N")
                     ((= apv Rook)   "R")
                     ((= apv Pawn)   "p")
-                    (t              "_"))))
+                    (t              " "))))
 
 (defun pretty-state (piece-value)
     (let ((pst (get-piece-state piece-value)))
@@ -152,22 +136,19 @@
                     ((= pst Castling)   "%")
                     (t                  " "))))
 
-(defun pretty-colour-on (piece-colour) 
+(defun set-pretty-colour (piece-colour) 
     (if (= piece-colour black)
-        (format NIL "~c[102m~c[30m~c[1m" #\ESC #\ESC #\ESC)
-        "" ))
+        (format NIL "~c[102m~c[30m~c[1m " #\ESC #\ESC #\ESC)
+        (format NIL "~c[40m~c[97m~c[1m " #\ESC #\ESC #\ESC)))
 
-(defun pretty-colour-off (piece-colour) 
-    (if (= piece-colour black)
-        (format NIL "~c[0m" #\ESC)
-        "" ))
-
+(defun reset-pretty-colour () 
+    (format NIL "~c[0m" #\ESC))
+        
 (defun pretty-piece (piece-value)
     (let ((piece-type   (pretty-type   piece-value))
           (piece-state  (pretty-state  piece-value))
-          (piece-colour-on    (pretty-colour-on  (colour piece-value)))
-          (piece-colour-off   (pretty-colour-off (colour piece-value))))
-        (concatenate 'string piece-colour-on piece-type piece-colour-off piece-state)))
+          (piece-colour-on    (set-pretty-colour  (colour piece-value))))
+        (concatenate 'string piece-colour-on piece-type piece-state (format NIL "~c[0m" #\ESC))))
 
 (defun pretty-line-of-pieces (piece-values)
     (when piece-values
@@ -177,7 +158,7 @@
             (pretty-line-of-pieces (rest piece-values)))))
 
 (defun display-pretty-board-line (board line)
-    (format t " ~A    ~A~%" 
+    (format t " ~A    ~A~%~%" 
         (write-to-string line)
         (pretty-line-of-pieces (first board))))
 
@@ -190,7 +171,7 @@
     ;; reverse so the first row is at the bottom 
     (format t "~%~%~%~A" "")
     (display-pretty-board (reverse board) height)
-    (format t "~%~A~%~%~%" "      a   b   c   d   e   f   g   h"))
+    (format t "~A~%~%" "       a    b    c    d    e    f    g    h"))
       
 ;; Convert the board data to a string
 (defun display-board (board)
@@ -1184,16 +1165,11 @@
 
 ;;
 ;; ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ---
-;; Testing & debugging . . .
+;; Running, testing, debugging . . .
 ;;
 
+(defun init ()  (play-chess initial-board      white))   ;; speed check
 
-;; For the run from terminal
-;; (defun main ()  (play-chess initial-board      white))
-;; 
-(defun main ()  (play-chess Mate-in-4-white-01 white))   ;; speed check
-
-(defun t1 ()    (play-chess initial-board      white))
 (defun m2w1 ()  (play-chess Mate-in-2-white-01 white))
 (defun m2w2 ()  (play-chess Mate-in-2-white-02 white))
 (defun m2w3 ()  (play-chess Mate-in-2-white-03 white))
@@ -1205,33 +1181,8 @@
 (defun m4w1 ()  (play-chess Mate-in-4-white-01 white))
 (defun mNw1 ()  (play-chess Mate-in-N-white-01 white))
 
-;;(main)
-;;(t1)
-
-;; Mate-in-2 serie
-;;(m2w1)
-;;(m2w2)
-;;(m2w3)
-;;(m2w4)
-;;(m2w5)
-;;(m2w6)
-;;(m2w7)
-;;(m2b1)
-
-;;(m4w1)
-;;(mNw1)
-;;(pD)
-;;(tM)
-
-#| 
-(sb-ext:save-lisp-and-die "qChess"
-    :toplevel #'main
-    :executable t
-    :save-runtime-options t     ; optional: keeps *standard-input* etc working nicely
-    ;; :compression 9           ; uncomment if your SBCL supports core compression
-    )
-|#
-;; sbcl --non-interactive --load chess.lisp
+;; Start with (main)
+(defun main ()  (init))
 
 ;;
 ;; End of code.

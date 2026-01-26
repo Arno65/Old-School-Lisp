@@ -1,7 +1,7 @@
 ;; ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ---
-;; "chess-pieces.scm"
+;; "chess-pieces.lisp"
 ;;
-;;  Creating a Chess engine in Lisp (using Scheme in Racket)
+;;  Creating a Chess engine in Common Lisp
 ;;
 ;;  version 0.02a   2026-01-10    From a first draft of 'chess.scm', pieces data
 ;;  version 0.02b   2026-01-12    Added Piece & state values for the 'evaluate' function
