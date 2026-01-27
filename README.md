@@ -8,7 +8,8 @@
   This is a learning project.\
   It's a work in progress and at the moment the code is a bit of a mess...\
   Learn old-school Lisp programming.\
-  Am I able to build a chess engine? . . .  for mate in 4, yes
+  Am I able to build a chess engine? . . .  for mate in 4, yes\
+  But there are still very inefficient functions in the code. 
 
   For a speedtest the Scheme code was converted to Common Lisp (SBCL). These files are also added.\
   The CL code is slower. (There is no check for illegal castling in the CL version.)
